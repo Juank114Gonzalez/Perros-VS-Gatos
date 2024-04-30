@@ -144,17 +144,27 @@ class Game:
         mel = melspec_lr(xs, self.fs, hop_length=H, win_length=M, n_mels=27)
         s = np.cov(mel)
         feats = s[np.triu_indices(s.shape[0])]
-
-        # 4. realizar prediccon usando el modelo
-        prediction = self.clf.predict(feats.reshape(1, -1))
-        command = self.clases[prediction][0]
-        print(f"[INFO] comando reconocido: {command}")
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                pg.quit()
-                sys.exit()
-            # snake control
-        self.snake.control(command)
+        # Convert the list to a NumPy array
+        my_array = np.array(feats)
+        # Check if any element is NaN
+        contains_nan = np.any(np.isnan(my_array))
+        if not contains_nan: 
+            probability = self.clf.predict_proba(feats.reshape(1, -1))
+            print(probability)
+            if max(probability[0])>=0.7:
+                # 4. realizar prediccon usando el modelo
+                prediction = self.clf.predict(feats.reshape(1, -1))
+                command = self.clases[prediction][0]
+                print(f"[INFO] comando reconocido: {command}")
+                for event in pg.event.get():
+                    if event.type == pg.QUIT:
+                        pg.quit()
+                        sys.exit()
+                    # snake control
+                self.snake.control(command)
+            else: 
+                print("No se reconoce nigun comando")
+        else: print("NaN")
 
     def run(self):
         while True:
