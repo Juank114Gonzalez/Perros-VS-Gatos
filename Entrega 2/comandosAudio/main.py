@@ -121,7 +121,7 @@ class Game:
     def update(self):
         self.snake.update()
         pg.display.flip()
-        self.clock.tick(60)
+        #self.clock.tick(60)
 
     def draw(self):
         self.screen.fill('black')
@@ -177,7 +177,7 @@ if __name__ == '__main__':
     # 1. Crear objeto de pyAudio
     p = pyaudio.PyAudio()
     fs = 16000  # Hertz
-    duracion = 1  # cuantos segundos por audio?
+    duracion = 2  # cuantos segundos por audio?
 
     ##2. cargar el modelo y las etiquetas
     fh = open("clasificador.pkl", "rb")
