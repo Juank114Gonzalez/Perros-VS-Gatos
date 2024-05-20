@@ -7,6 +7,16 @@ import numpy as np
 import pyaudio
 import pickle
 
+import IPython
+from scipy.io import wavfile
+import noisereduce as nr
+import soundfile as sf
+from noisereduce.generate_noise import band_limited_noise
+import matplotlib.pyplot as plt
+import urllib.request
+import numpy as np
+import io
+
 vec2 = pg.math.Vector2
 
 
@@ -134,6 +144,8 @@ class Game:
     def check_event(self):
         b = signal.firwin(128, 20 / (self.fs / 2), window="hamming", pass_zero=True)
         x = getAudio(self.p, RATE=self.fs, RECORD_SECONDS=self.duracion)
+        reduced_noise = nr.reduce_noise(y = x, sr=fs, thresh_n_mult_nonstationary=2,stationary=False)
+        x=reduced_noise
         x = x / np.max(abs(x))
         s = signal.hilbert(x)
         Eh = np.abs(s)
@@ -153,10 +165,9 @@ class Game:
         if not contains_nan: 
             feats_pca = self.pca_model.transform(feats.reshape(1, -1))
             probability = self.clf.predict_proba(feats_pca)
-            print(probability)
-            if max(probability[0])>=0.7:
+            print(max(reduced_noise))
+            if abs(max(reduced_noise))>=0.2:
                 # 4. realizar prediccon usando el modelo
-
                 feats_pca = self.pca_model.transform(feats.reshape(1, -1))
                 prediction = self.clf.predict(feats_pca)
                 command = self.clases[prediction][0]
@@ -182,7 +193,7 @@ if __name__ == '__main__':
     # 1. Crear objeto de pyAudio
     p = pyaudio.PyAudio()
     fs = 16000  # Hertz
-    duracion = 2  # cuantos segundos por audio?
+    duracion = 2 # cuantos segundos por audio?
 
     ##2. cargar el modelo y las etiquetas
     fh = open("clasificador.pkl", "rb")
