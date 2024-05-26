@@ -13,6 +13,7 @@ from scipy.signal import get_window
 import librosa
 
 
+
 ##############
 def calFeatures(x, fs, M, H, NFFT):
     xf, _ = enframe(x, window="hamming", M=M, H=H)
@@ -61,24 +62,30 @@ def calFeatures(x, fs, M, H, NFFT):
     return Fc, HH, Er, F1, F2
 
 
+def mfcc_lr(s,fs,n_mfcc=13,hop_length=100,win_length=400):
+    mfccs = librosa.feature.MFCC_lr(y=s, sr=fs, n_mfcc=n_mfcc,hop_length=hop_length, win_length=win_length,htk=True)
+    mfcc_delta = librosa.feature.DELTA_lr(mfccs)
+    mfcc_delta2 = librosa.feature.DELTA_lr(mfccs, order=2)
+    #concat all features
+    feats= np.vstack((mfccs,mfcc_delta,mfcc_delta2)) + np.finfo(float).eps
+    #feats=feats.T;
+    feats_norm = ((feats.T - feats.mean(axis=1))/(feats.std(axis=1)+np.finfo(float).eps)).T
+    return feats_norm
+
+
+
 ########################
 
 
 ########################## get melspectrogram
-def melspec_lr(s, fs, hop_length=100, win_length=400, n_mels=27, n_fft=512):
-    # s   = librosa.effects.preemphasis(s)
-    S = librosa.feature.melspectrogram(
-        y=s,
-        sr=fs,
-        n_fft=n_fft,
-        hop_length=hop_length,
-        win_length=win_length,
-        n_mels=n_mels,
-    )
-    feats = librosa.power_to_db(S, ref=np.max)
-    feats_norm = (
-        (feats.T - feats.mean(axis=1)) / (feats.std(axis=1) + np.finfo(float).eps)
-    ).T
+def melspec_lr(s,fs,n_mfcc=13,hop_length=100,win_length=400):
+    mfccs = librosa.feature.MFCC_lr(y=s, sr=fs, n_mfcc=n_mfcc,hop_length=hop_length, win_length=win_length,htk=True)
+    mfcc_delta = librosa.feature.DELTA_lr(mfccs)
+    mfcc_delta2 = librosa.feature.DELTA_lr(mfccs, order=2)
+    #concat all features
+    feats= np.vstack((mfccs,mfcc_delta,mfcc_delta2)) + np.finfo(float).eps
+    #feats=feats.T;
+    feats_norm = ((feats.T - feats.mean(axis=1))/(feats.std(axis=1)+np.finfo(float).eps)).T
     return feats_norm
 
 
