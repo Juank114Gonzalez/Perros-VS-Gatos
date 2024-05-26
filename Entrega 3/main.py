@@ -2,7 +2,7 @@ import pygame as pg
 import sys
 from random import randrange
 from scipy import signal
-from tools import getAudio, melspec_lr
+from tools import getAudio, mfcc_lr
 import numpy as np
 import pyaudio
 import pickle
@@ -35,19 +35,19 @@ class Snake:
         self.directions = {pg.K_w: 1, pg.K_s: 1, pg.K_a: 1, pg.K_d: 1}
 
     def control(self, command):
-        if command == "up" and self.directions[pg.K_w]:
+        if command == "sube" and self.directions[pg.K_w]:
             self.direction = vec2(0, -self.size)
             self.directions = {pg.K_w: 1, pg.K_s: 0, pg.K_a: 1, pg.K_d: 1}
 
-        if command == "down" and self.directions[pg.K_s]:
+        if command == "baja" and self.directions[pg.K_s]:
             self.direction = vec2(0, self.size)
             self.directions = {pg.K_w: 0, pg.K_s: 1, pg.K_a: 1, pg.K_d: 1}
 
-        if command == "left" and self.directions[pg.K_a]:
+        if command == "izquierda" and self.directions[pg.K_a]:
             self.direction = vec2(-self.size, 0)
             self.directions = {pg.K_w: 1, pg.K_s: 1, pg.K_a: 1, pg.K_d: 0}
 
-        if command == "right" and self.directions[pg.K_d]:
+        if command == "derecha" and self.directions[pg.K_d]:
             self.direction = vec2(self.size, 0)
             self.directions = {pg.K_w: 1, pg.K_s: 1, pg.K_a: 0, pg.K_d: 1}
 
@@ -155,7 +155,7 @@ class Game:
         ## calcular espectro de mel
         M = int(self.fs * 0.025)
         H = int(self.fs * 0.010)
-        mel = melspec_lr(xs, self.fs, hop_length=H, win_length=M, n_mels=27)
+        mel = mfcc_lr(xs, self.fs,n_mfcc=13, hop_length=H, win_length=M)
         s = np.cov(mel)
         feats = s[np.triu_indices(s.shape[0])]
         # Convert the list to a NumPy array

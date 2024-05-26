@@ -10,8 +10,10 @@ from wav_rw import wavwrite
 import os
 from glob import glob
 from scipy.signal import get_window
-import librosa
-
+from librosa import load, resample
+from librosa.feature import mfcc as MFCC_lr
+from librosa.feature import delta as DELTA_lr
+from librosa import *
 
 
 ##############
@@ -61,16 +63,50 @@ def calFeatures(x, fs, M, H, NFFT):
 
     return Fc, HH, Er, F1, F2
 
+def pad_audio(s, length):
+    if len(s) < length:
+        s = np.pad(s, (0, length - len(s)), 'constant')
+    return s
+
+def calculate_delta(mfccs, width):
+    try:
+        mfcc_delta = DELTA_lr(mfccs, width=width)
+    except ParameterError:
+        width = min(width, mfccs.shape[1] - 1)
+        if width < 3:
+            width = 3
+        mfcc_delta = DELTA_lr(mfccs, width=width)
+    return mfcc_delta
+
+
 
 def mfcc_lr(s,fs,n_mfcc=13,hop_length=100,win_length=400):
-    mfccs = librosa.feature.MFCC_lr(y=s, sr=fs, n_mfcc=n_mfcc,hop_length=hop_length, win_length=win_length,htk=True)
-    mfcc_delta = librosa.feature.DELTA_lr(mfccs)
-    mfcc_delta2 = librosa.feature.DELTA_lr(mfccs, order=2)
+
+    s = pad_audio(s, 2048)
+
+    mfccs = MFCC_lr(y=s, sr=fs, n_mfcc=n_mfcc,hop_length=hop_length, win_length=win_length,htk=True)
+    mfcc_delta = calculate_delta(mfccs,9)
+    mfcc_delta2 = calculate_delta(mfcc_delta, 9)
     #concat all features
     feats= np.vstack((mfccs,mfcc_delta,mfcc_delta2)) + np.finfo(float).eps
     #feats=feats.T;
     feats_norm = ((feats.T - feats.mean(axis=1))/(feats.std(axis=1)+np.finfo(float).eps)).T
     return feats_norm
+"""
+
+def mfcc_lr(s, fs, n_mfcc=13, hop_length=100, win_length=400, n_fft=512):
+    # Ajustar n_fft a un valor menor para señales cortas
+    n_fft = min(len(s), n_fft)
+    # Calcular MFCCs
+    mfccs = MFCC_lr(y=s, sr=fs, n_mfcc=n_mfcc, hop_length=hop_length, win_length=win_length, n_fft=n_fft, htk=True)
+    # Calcular deltas
+    mfcc_delta = DELTA_lr(mfccs, width=3)
+    mfcc_delta2 = DELTA_lr(mfccs, order=2, width=3)
+    # Concatenar todas las características
+    feats = np.vstack((mfccs, mfcc_delta, mfcc_delta2)) + np.finfo(float).eps
+    # Normalizar las características
+    feats_norm = ((feats.T - feats.mean(axis=1)) / (feats.std(axis=1) + np.finfo(float).eps)).T
+    return feats_norm"""
 
 
 
@@ -79,9 +115,9 @@ def mfcc_lr(s,fs,n_mfcc=13,hop_length=100,win_length=400):
 
 ########################## get melspectrogram
 def melspec_lr(s,fs,n_mfcc=13,hop_length=100,win_length=400):
-    mfccs = librosa.feature.MFCC_lr(y=s, sr=fs, n_mfcc=n_mfcc,hop_length=hop_length, win_length=win_length,htk=True)
-    mfcc_delta = librosa.feature.DELTA_lr(mfccs)
-    mfcc_delta2 = librosa.feature.DELTA_lr(mfccs, order=2)
+    mfccs = MFCC_lr(y=s, sr=fs, n_mfcc=n_mfcc,hop_length=hop_length, win_length=win_length,htk=True)
+    mfcc_delta = DELTA_lr(mfccs)
+    mfcc_delta2 = DELTA_lr(mfccs, order=2)
     #concat all features
     feats= np.vstack((mfccs,mfcc_delta,mfcc_delta2)) + np.finfo(float).eps
     #feats=feats.T;
