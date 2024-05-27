@@ -6,7 +6,6 @@ from tools import getAudio, mfcc_lr
 import numpy as np
 import pyaudio
 import pickle
-
 import IPython
 from scipy.io import wavfile
 import noisereduce as nr
@@ -16,11 +15,15 @@ import matplotlib.pyplot as plt
 import urllib.request
 import numpy as np
 import io
+import time
 
 vec2 = pg.math.Vector2
 
 
 class Snake:
+    
+    commandQueue=[]
+    
     def __init__(self, game):
         self.game = game
         self.size = game.TILE_SIZE
@@ -50,6 +53,7 @@ class Snake:
         if command == "derecha" and self.directions[pg.K_d]:
             self.direction = vec2(self.size, 0)
             self.directions = {pg.K_w: 1, pg.K_s: 1, pg.K_a: 0, pg.K_d: 1}
+            
 
     def delta_time(self):
         time_now = pg.time.get_ticks()
@@ -126,14 +130,17 @@ class Game:
         [pg.draw.line(self.screen, [50] * 3, (0, y), (self.WINDOW_SIZE, y))
                                              for y in range(0, self.WINDOW_SIZE, self.TILE_SIZE)]
 
+
     def new_game(self):
         self.snake = Snake(self)
         self.food = Food(self)
+
 
     def update(self):
         self.snake.update()
         pg.display.flip()
         #self.clock.tick(60)
+
 
     def draw(self):
         self.screen.fill('black')
@@ -141,7 +148,8 @@ class Game:
         self.food.draw()
         self.snake.draw()
 
-    def check_event(self):
+
+    def process_audio(self):  
         b = signal.firwin(128, 20 / (self.fs / 2), window="hamming", pass_zero=True)
         x = getAudio(self.p, RATE=self.fs, RECORD_SECONDS=self.duracion)
         reduced_noise = nr.reduce_noise(y = x, sr=fs, thresh_n_mult_nonstationary=2,stationary=False)
@@ -161,6 +169,7 @@ class Game:
         # Convert the list to a NumPy array
         my_array = np.array(feats)
         # Check if any element is NaN
+        my_array=xs
         contains_nan = np.any(np.isnan(my_array))
         if not contains_nan: 
             feats_pca = self.pca_model.transform(feats.reshape(1, -1))
@@ -168,25 +177,45 @@ class Game:
             print(max(reduced_noise))
             if abs(max(reduced_noise))>=0.2:
                 # 4. realizar prediccon usando el modelo
-                feats_pca = self.pca_model.transform(feats.reshape(1, -1))
-                prediction = self.clf.predict(feats_pca)
-                command = self.clases[prediction][0]
-                print(f"[INFO] comando reconocido: {command}")
-                for event in pg.event.get():
-                    if event.type == pg.QUIT:
-                        pg.quit()
-                        sys.exit()
-                    # snake control
-                self.snake.control(command)
+                command=self.model_prediction(feats)
+                self.snake.commandQueue.append(command)
+                #self.snake.control(command)
             else: 
                 print("No se reconoce nigun comando")
         else: print("NaN")
+        
+    def model_prediction(self, feats): 
+        feats_pca = self.pca_model.transform(feats.reshape(1, -1))
+        prediction = self.clf.predict(feats_pca)
+        command = self.clases[prediction][0]
+        print(f"[INFO] comando reconocido: {command}")
+        return command
+
+
+    def check_event(self):
+        for event in pg.event.get():
+            if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
+                print("---------------GRABANDO POR 2 SEGUNDOS---------------")
+                self.process_audio()
+            for event in pg.event.get():
+                if event.type == pg.KEYDOWN and event.key == pg.K_SPACE:
+                    print("---------------GRABANDO POR 2 SEGUNDOS---------------")
+                    self.process_audio()                     
+        
 
     def run(self):
         while True:
             self.check_event()
-            self.update()
-            self.draw()
+            if len(self.snake.commandQueue)!=0: 
+                for i in range(0, len(self.snake.commandQueue)): 
+                    self.snake.control(self.snake.commandQueue.pop(0))   
+                    self.update()                    
+                    self.draw()
+                    time.sleep(0.2)
+            else: 
+                    self.update()
+                    self.draw()
+                    time.sleep(0.2)
 
 
 if __name__ == '__main__':
@@ -211,4 +240,5 @@ if __name__ == '__main__':
     fh.close()
 
     game = Game(clf, pca_model, clases, p, fs, duracion, 0.2)
+    
     game.run()
