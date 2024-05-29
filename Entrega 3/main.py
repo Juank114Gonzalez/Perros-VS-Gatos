@@ -36,6 +36,13 @@ class Snake:
         self.length = 1
         self.segments = []
         self.directions = {pg.K_w: 1, pg.K_s: 1, pg.K_a: 1, pg.K_d: 1}
+        self.images = {
+            "head_up": pg.transform.smoothscale(pg.image.load('./Graphics/head_up.png').convert_alpha(), (self.size+(self.size*0.1), self.size+(self.size*0.1))),
+            "head_down": pg.transform.smoothscale(pg.image.load('./Graphics/head_down.png').convert_alpha(), (self.size+(self.size*0.1), self.size+(self.size*0.1))),
+            "head_left": pg.transform.smoothscale(pg.image.load('./Graphics/head_left.png').convert_alpha(), (self.size+(self.size*0.1), self.size+(self.size*0.1))),
+            "head_right": pg.transform.smoothscale(pg.image.load('./Graphics/head_right.png').convert_alpha(), (self.size+(self.size*0.1), self.size+(self.size*0.1))),
+            "body": pg.transform.smoothscale(pg.image.load('./Graphics/body.png').convert_alpha(), (self.size+(self.size*0.1), self.size+(self.size*0.1)))
+        }
 
     def control(self, command):
         if command == "sube" and self.directions[pg.K_w]:
@@ -93,18 +100,32 @@ class Snake:
         self.move()
 
     def draw(self):
-        [pg.draw.rect(self.game.screen, 'green', segment) for segment in self.segments]
+        for segment in self.segments:
+            if len(self.segments)-1==self.segments.index(segment):
+                if(self.direction.x==0):
+                    if(self.direction.y>0):
+                        self.game.screen.blit(self.images["head_down"], self.rect)
+                    else:
+                        self.game.screen.blit(self.images["head_up"], self.rect)
+                else:
+                    if(self.direction.x>0):
+                        self.game.screen.blit(self.images["head_right"], self.rect)
+                    else:
+                        self.game.screen.blit(self.images["head_left"], self.rect)
+            else:
+                self.game.screen.blit(self.images["body"], segment)
 
 
 class Food:
     def __init__(self, game):
         self.game = game
         self.size = game.TILE_SIZE
+        self.image = pg.transform.scale(pg.image.load('./Graphics/apple.png').convert_alpha(), (self.size, self.size))
         self.rect = pg.rect.Rect([0, 0, game.TILE_SIZE - 2, game.TILE_SIZE - 2])
         self.rect.center = self.game.snake.get_random_position()
 
     def draw(self):
-        pg.draw.rect(self.game.screen, 'red', self.rect)
+        self.game.screen.blit(self.image, self.rect)
 
 
 class Game:
