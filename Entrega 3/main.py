@@ -164,7 +164,7 @@ class Game:
 
 
     def draw(self):
-        self.screen.fill('black')
+        self.screen.fill((236, 226, 198))
         self.draw_grid()
         self.food.draw()
         self.snake.draw()
